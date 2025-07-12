@@ -8,7 +8,7 @@ export async function POST(req) {
 
     const user = await admin.auth().getUserByEmail(email);
     const userRef = db.collection('users').doc(user.uid);
-    await userRef.set({ business: data }, { merge: true });
+    await userRef.set({ custom: data }, { merge: true });
 
     return NextResponse.json({ message: "User found", uid: user.uid });
   } catch (error) {
