@@ -8,7 +8,7 @@ export async function POST(req) {
     const userRecord = await admin.auth().createUser({
       email,
       password,
-      phoneNumber: phone,
+      phoneNumber: `+91${phone}`,
       displayName: name,
     });
 
