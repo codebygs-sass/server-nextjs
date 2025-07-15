@@ -10,6 +10,7 @@ export async function POST(req) {
       password,
       phoneNumber: phone,
       displayName: name,
+      country:country
     });
 
     await db.collection("users").doc(userRecord.uid).set({
