@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { admin, db } from '../../../lib/firebaseAdmin';
-import { signInWithEmailAndPassword } from "firebase/auth";
+
 
 
 export async function POST(req) {
