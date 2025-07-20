@@ -8,9 +8,9 @@ export async function POST(req) {
     const userRecord = await admin.auth().createUser({
       email,
       password,
-      phoneNumber: phone,
+      // phoneNumber: phone,
       displayName: name,
-      country:country
+      // country:country
     });
 
     await db.collection("users").doc(userRecord.uid).set({
