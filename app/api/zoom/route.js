@@ -66,8 +66,8 @@ export default function POST(req, res) {
 
   const oHeader = { alg: 'HS256', typ: 'JWT' };
   const oPayload = {
-    appKey: process.env.ZOOM_MEETING_SDK_KEY,
-    sdkKey: process.env.ZOOM_MEETING_SDK_KEY,
+    appKey: process.env.ZOOM_CLIENT_ID,
+    sdkKey: process.env.ZOOM_CLIENT_ID,
     mn: meetingNumber,
     role,
     iat,
@@ -85,11 +85,11 @@ export default function POST(req, res) {
     'HS256',
     sHeader,
     sPayload,
-    process.env.ZOOM_MEETING_SDK_SECRET
+    process.env.ZOOM_CLIENT_SECRET
   );
 
   return NextResponse.status(200).json({
     signature,
-    sdkKey: process.env.ZOOM_MEETING_SDK_KEY,
+    sdkKey: process.env.ZOOM_CLIENT_ID,
   });
 }
