@@ -5,7 +5,7 @@ import fs from "fs";
 import { parseFile } from "music-metadata";
 import { extractAudio } from "../../../lib/ffmpeg"; // ✅ import your function
 
-export const config = {
+export const routeConfig = {
   api: {
     bodyParser: false,
   },
