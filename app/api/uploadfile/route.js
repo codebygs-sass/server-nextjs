@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { parseFile } from "music-metadata";
 import { extractAudio } from "../../../lib/ffmpeg"; // ✅ import your function
+import formidable from "formidable";
 
 export const routeConfig = {
   api: {
@@ -13,7 +14,8 @@ export const routeConfig = {
 
 export async function POST(req) {
   try {
-    const formData = await req.formData();
+    const form = formidable({ multiples: false });
+    const formData =await form.parse(req);
     const file = formData.get("files");
 
     if (!file) {
