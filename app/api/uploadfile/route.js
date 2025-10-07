@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import path from "path";
+import fs from "fs";
 import { parseFile } from "music-metadata";
+import { extractAudio } from "../../../lib/ffmpeg"; // ✅ import your function
 
 export const config = {
   api: {
@@ -12,42 +14,60 @@ export const config = {
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    const file = formData.get("files"); // Make sure this matches `FormData.append('files', ...)` on the frontend
+    const file = formData.get("files");
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert the File into a buffer
+   
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const fileName = `${Date.now()}-${file.name}`;
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
 
-    // Create the file path (inside /public/uploads)
-    const filePath = path.join(process.cwd(), "public", "uploads", fileName);
+    await fs.promises.mkdir(uploadDir, { recursive: true });
 
-    // Save file to disk
+    const filePath = path.join(uploadDir, fileName);
     await writeFile(filePath, buffer);
 
-    // Parse metadata from the saved file
+    // Get metadata
     const metadata = await parseFile(filePath);
-    const duration = metadata.format.duration?.toFixed(2);
     const mimeType = metadata.format.mimeType || file.type;
+    const isVideo = mimeType?.startsWith("video/");
 
-    const minutes = Math.floor(duration / 60); // → 5
-const seconds = (duration % 60).toFixed(0); // → 16
+    let audioPath = filePath;
+    let audioFileName = fileName;
 
-const formatted = `${minutes}m ${seconds}s`;
+    if (isVideo) {
+      audioFileName = `${Date.now()}-${path.parse(file.name).name}.mp3`;
+      audioPath = path.join(uploadDir, audioFileName);
+
+      // ✅ Call your helper function
+      await extractAudio(filePath, audioPath);
+    }
+
+    // Get audio metadata
+    const audioMeta = await parseFile(audioPath);
+    const duration = audioMeta.format.duration?.toFixed(2);
+    const minutes = Math.floor(duration / 60);
+    const seconds = (duration % 60).toFixed(0);
+    const formatted = `${minutes}m ${seconds}s`;
 
     return NextResponse.json({
-      message: "File uploaded and analyzed successfully",
-      fileName,
-      duration:formatted,
-      mimeType,
-      size: file.size,
+      message: "Processed successfully",
+      name: file.name,
+      isVideo,
+      converted: isVideo ? "Video converted to audio" : "Audio uploaded directly",
+      fileName: audioFileName,
+      duration: formatted,
+      mimeType: file.type,
+      filePath: `/uploads/${audioFileName}`,
+      size: fs.statSync(audioPath).size,
     });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "File upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "File upload or conversion failed" }, { status: 500 });
   }
 }

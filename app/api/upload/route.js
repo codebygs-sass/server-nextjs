@@ -11,30 +11,30 @@ export async function POST(request) {
     const formData = await request.formData();
     const file = formData.get("file");
 
-    if (!file || typeof file === "string") {
-      return new Response(JSON.stringify({ error: "Invalid file upload" }), {
-        status: 400,
-      });
-    }
+    // if (!file || typeof file === "string") {
+    //   return new Response(JSON.stringify({ error: "Invalid file upload" }), {
+    //     status: 400,
+    //   });
+    // }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // const buffer = Buffer.from(await file.arrayBuffer());
 
-    const uploadsDir = path.join(process.cwd(), "temp");
-    await fs.mkdir(uploadsDir, { recursive: true });
+    // const uploadsDir = path.join(process.cwd(), "temp");
+    // await fs.mkdir(uploadsDir, { recursive: true });
 
-    const videoPath = path.join(uploadsDir, `${Date.now()}_${file.name}`);
-    const audioPath = path.join(uploadsDir, `${Date.now()}.wav`);
+    // const videoPath = path.join(uploadsDir, `${Date.now()}_${file.name}`);
+    const audioPath = path.join(process.cwd(), 'public', 'uploads', file);
 
-    // Save uploaded video file to disk
-    await fs.writeFile(videoPath, buffer);
+    // // Save uploaded video file to disk
+    // await fs.writeFile(videoPath, buffer);
 
-    // Process audio
-    await extractAudio(videoPath, audioPath);
+    // // Process audio
+    // await extractAudio(videoPath, audioPath);
     const transcript = await transcribeAudio(audioPath);
 
     // Cleanup
-    await fs.unlink(videoPath);
-    await fs.unlink(audioPath);
+    // await fs.unlink(videoPath);
+    // await fs.unlink(audioPath);
 
     return new Response(JSON.stringify({ transcript }), {
       status: 200,
