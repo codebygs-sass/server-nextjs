@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import path from "path";
-import fs from "fs";
 import { parseFile } from "music-metadata";
-import { extractAudio } from "../../../lib/ffmpeg"; // ✅ import your function
-import formidable from "formidable";
+import { extractAudio } from "../../../lib/ffmpeg";
+import fs from "fs";
+import { promises as fsp } from "fs";
+import path from "path";
+import https from "https";
+import { v4 as uuidv4 } from "uuid";
 
 export const routeConfig = {
   api: {
@@ -12,61 +13,64 @@ export const routeConfig = {
   },
 };
 
+async function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath);
+    https.get(url, (response) => {
+      response.pipe(file);
+      file.on("finish", () => {
+        file.close(() => resolve(destPath));
+      });
+    }).on("error", (err) => {
+      fs.unlink(destPath, () => reject(err));
+    });
+  });
+}
+
 export async function POST(req) {
   try {
-    const form = formidable({ multiples: false });
-    const formData =await form.parse(req);
-    const file = formData.get("files");
+    const body = await req.json();
+    const fileUrl = body.fileUrl;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    if (!fileUrl) {
+      return NextResponse.json({ error: "No fileUrl provided" }, { status: 400 });
     }
 
-   
+    const tempDir = path.join(process.cwd(), "public","uploads");
+    await fsp.mkdir(tempDir, { recursive: true });
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const fileName = `${Date.now()}-${file.name}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const fileExt = path.extname(fileUrl.split("?")[0]);
+    const tempFileName = `${uuidv4()}${fileExt}`;
+    const tempPath = path.join(tempDir, tempFileName);
 
-    await fs.promises.mkdir(uploadDir, { recursive: true });
+    await downloadFile(fileUrl, tempPath);
 
-    const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
-
-    // Get metadata
-    const metadata = await parseFile(filePath);
-    const mimeType = metadata.format.mimeType || file.type;
+    const metadata = await parseFile(tempPath);
+    const mimeType = metadata.format.mimeType;
     const isVideo = mimeType?.startsWith("video/");
 
-    let audioPath = filePath;
-    let audioFileName = fileName;
+    let finalPath = tempPath;
 
     if (isVideo) {
-      audioFileName = `${Date.now()}-${path.parse(file.name).name}.mp3`;
-      audioPath = path.join(uploadDir, audioFileName);
-
-      // ✅ Call your helper function
-      await extractAudio(filePath, audioPath);
+      const audioPath = path.join(tempDir, `${uuidv4()}.mp3`);
+      await extractAudio(tempPath, audioPath);
+      finalPath = audioPath;
     }
 
-    // Get audio metadata
-    const audioMeta = await parseFile(audioPath);
-    const duration = audioMeta.format.duration?.toFixed(2);
+    const finalMeta = await parseFile(finalPath);
+    const duration = finalMeta.format.duration?.toFixed(2);
     const minutes = Math.floor(duration / 60);
     const seconds = (duration % 60).toFixed(0);
     const formatted = `${minutes}m ${seconds}s`;
+    
+    
 
     return NextResponse.json({
       message: "Processed successfully",
-      name: file.name,
       isVideo,
-      converted: isVideo ? "Video converted to audio" : "Audio uploaded directly",
-      fileName: audioFileName,
       duration: formatted,
-      mimeType: file.type,
-      filePath: `/uploads/${audioFileName}`,
-      size: fs.statSync(audioPath).size,
+      mimeType: finalMeta.format.mimeType,
+      filePath: fileUrl,
     });
   } catch (error) {
     console.error("Upload error:", error);
