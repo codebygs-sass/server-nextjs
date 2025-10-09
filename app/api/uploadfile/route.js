@@ -7,11 +7,7 @@ import path from "path";
 import https from "https";
 import { v4 as uuidv4 } from "uuid";
 
-export const routeConfig = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const runtime = "nodejs"; // ✅ ensures Node environment
 
 async function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
@@ -36,7 +32,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "No fileUrl provided" }, { status: 400 });
     }
 
-    const tempDir = path.join(process.cwd(), "public","uploads");
+    const tempDir = path.join(process.cwd(), "public", "uploads");
     await fsp.mkdir(tempDir, { recursive: true });
 
     const fileExt = path.extname(fileUrl.split("?")[0]);
@@ -62,8 +58,6 @@ export async function POST(req) {
     const minutes = Math.floor(duration / 60);
     const seconds = (duration % 60).toFixed(0);
     const formatted = `${minutes}m ${seconds}s`;
-    
-    
 
     return NextResponse.json({
       message: "Processed successfully",
